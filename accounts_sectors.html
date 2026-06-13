@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>اختيار القطاع - الحسابات المالية - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+  </head>
+  <body
+    class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden"
+  >
+    <!-- Background Decor Elements -->
+    <div
+      class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-brand-green/5 rounded-full blur-3xl pointer-events-none z-0"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Main Navigation Header -->
+    <header
+      class="bg-white/90 backdrop-blur-md border-b-[3px] border-brand-gold shadow-sm sticky top-0 z-20"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4"
+      >
+        <div class="flex items-center gap-4">
+          <img
+            src="icons/Logo.png"
+            alt="شعار شركة بشاير النخيل"
+            class="h-16 w-auto object-contain"
+          />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-brand-green">
+              بشاير النخيل
+            </h1>
+            <p class="text-brand-gold text-sm mt-0.5 font-bold">
+              إدارة متميزة للمزارع
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a
+            href="financial_options.html"
+            class="flex-1 sm:flex-none bg-white hover:bg-brand-cream text-brand-gold font-bold py-2.5 px-6 rounded-xl shadow-sm border border-brand-gold/30 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+          >
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>الرجوع</span>
+          </a>
+          <button
+            onclick="SessionManager.logout()"
+            class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-200"
+          >
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main
+      class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full relative z-10 flex flex-col items-center"
+    >
+      <header class="text-center mb-12 animate-fade-in-down">
+        <h2 class="text-3xl sm:text-4xl font-bold text-brand-green mb-4">
+          مرحباً بك في لوحة تحكم الحسابات المالية
+        </h2>
+        <p class="text-lg text-slate-600 font-semibold max-w-2xl mx-auto">
+          يرجى اختيار القطاع الذي تود الدخول إليه لإدارة الحسابات المالية بكل
+          سهولة.
+        </p>
+
+        <!-- Installment Stats Container -->
+        <div id="installmentStatsContainer" class="w-full max-w-6xl mx-auto mt-8 hidden animate-fade-in"></div>
+
+        <div class="mt-8 max-w-2xl mx-auto flex flex-col sm:flex-row gap-3 items-center justify-center">
+          <!-- Global Search Input -->
+          <div class="relative w-full sm:flex-1">
+            <i
+              data-lucide="search"
+              class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"
+            ></i>
+            <input
+              type="text"
+              id="globalSearchInput"
+              placeholder="ابحث بالاسم، الهاتف، أو القطعة لمعرفة القطاع..."
+              class="w-full pr-12 pl-4 py-3 border-2 border-brand-gold/30 rounded-2xl text-base focus:ring-2 focus:ring-brand-green focus:border-brand-green outline-none transition-all shadow-sm bg-white font-bold text-brand-green placeholder-slate-400"
+            />
+          </div>
+
+          <!-- Code-only Search Input -->
+          <div class="relative w-full sm:w-48">
+            <i
+              data-lucide="hash"
+              class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"
+            ></i>
+            <input
+              type="text"
+              id="codeSearchInput"
+              placeholder="كود العميل..."
+              class="w-full pr-12 pl-4 py-3 border-2 border-brand-gold/30 rounded-2xl text-base focus:ring-2 focus:ring-brand-green focus:border-brand-green outline-none transition-all shadow-sm bg-white font-bold text-brand-green placeholder-slate-400"
+            />
+          </div>
+        </div>
+        <p
+          id="searchMessage"
+          class="mt-3 text-sm font-bold h-5 transition-opacity opacity-0"
+        ></p>
+      </header>
+
+      <!-- Sectors Grid -->
+      <nav
+        id="sectorsContainer"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full max-w-6xl"
+        aria-label="اختيار القطاعات"
+      >
+        <!-- Sectors will be injected here dynamically -->
+      </nav>
+    </main>
+  </body>
+</html>

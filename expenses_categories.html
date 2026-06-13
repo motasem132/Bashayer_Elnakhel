@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>أقسام المصروفات - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+    <script>
+      // Array of expense categories
+      const expensesCategories = [
+        { name: "تسويات", icon: "file-text" },
+        { name: "طرق", icon: "map" },
+        { name: "مساحة", icon: "ruler" },
+        { name: "شبكات", icon: "git-merge" },
+        { name: "طاقة شمسية", icon: "sun" },
+        { name: "اعمال زراعة", icon: "leaf" },
+        { name: "ضيافة", icon: "coffee" },
+        { name: "زيارة", icon: "users" },
+        { name: "معدات", icon: "settings" },
+        { name: "مسحوبات شخصية", icon: "wallet" },
+        { name: "إنشاءات", icon: "hammer" },
+        { name: "دعاية واعلان", icon: "megaphone" },
+        { name: "مرتبات وعمولات", icon: "banknote" },
+        { name: "أخرى", icon: "more-horizontal" } // Placeholder for the 14th item
+      ];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const container = document.getElementById("expensesContainer");
+        const bottomContainer = document.getElementById("bottomExpensesContainer");
+
+        // Build the cards first (with 0 amounts), then update from Firebase
+        expensesCategories.forEach((category, index) => {
+          const a = document.createElement("a");
+          a.href = `expense_details.html?category=${encodeURIComponent(category.name)}`;
+          a.className = "group bg-white rounded-3xl p-6 border-2 border-transparent hover:border-red-500 shadow-sm hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300 transform hover:-translate-y-1 flex flex-col items-center text-center relative overflow-hidden w-full";
+          a.dataset.categoryIndex = index;
+
+          a.innerHTML = `
+            <div class="absolute inset-0 bg-gradient-to-br from-red-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div class="w-16 h-16 rounded-2xl bg-red-50 group-hover:bg-red-100 text-red-500 group-hover:text-red-600 flex items-center justify-center mb-4 transition-colors duration-300 relative z-10">
+              <i data-lucide="${category.icon}" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 group-hover:text-red-600 transition-colors duration-300 mb-2 relative z-10">
+              ${category.name}
+            </h3>
+            <p class="text-sm text-slate-500 font-bold relative z-10 bg-slate-100 py-1 px-3 rounded-full group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
+              <span class="category-amount" id="amount-${index}">0.00</span> ج.م
+            </p>
+          `;
+
+          if (index >= 12) {
+            bottomContainer.appendChild(a);
+          } else {
+            container.appendChild(a);
+          }
+        });
+
+        if (typeof lucide !== "undefined") lucide.createIcons();
+
+        // Load amounts from Firebase
+        function loadAmountsFromFirebase() {
+          if (!window.dataService || !window.dataService.db) {
+            // Firebase not ready, retry
+            setTimeout(loadAmountsFromFirebase, 300);
+            return;
+          }
+
+          expensesCategories.forEach((category, index) => {
+            const firebaseKey = category.name.replace(/[.#$\[\]/]/g, '_');
+            window.dataService.db.ref(`expenses/${firebaseKey}`).on('value', (snapshot) => {
+              const data = snapshot.val();
+              const expensesData = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+              const totalSum = expensesData.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+              const amountEl = document.getElementById(`amount-${index}`);
+              if (amountEl) {
+                amountEl.textContent = totalSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              }
+            });
+          });
+        }
+
+        loadAmountsFromFirebase();
+      });
+    </script>
+  </head>
+  <body
+    class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden"
+  >
+    <!-- Background Decor Elements -->
+    <div
+      class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-red-500/5 rounded-full blur-3xl pointer-events-none z-0"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Main Navigation Header -->
+    <header
+      class="bg-white/90 backdrop-blur-md border-b-[3px] border-red-500 shadow-sm sticky top-0 z-20"
+    >
+      <div
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4"
+      >
+        <div class="flex items-center gap-4">
+          <img
+            src="icons/Logo.png"
+            alt="شعار شركة بشاير النخيل"
+            class="h-16 w-auto object-contain"
+          />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-red-600">
+              المصروفات
+            </h1>
+            <p class="text-slate-500 text-sm mt-0.5 font-bold">
+              إدارة بنود المصروفات
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a
+            href="financial_options.html"
+            class="flex-1 sm:flex-none bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-slate-200 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          >
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>الرجوع</span>
+          </a>
+          <button
+            onclick="SessionManager.logout()"
+            class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-200"
+          >
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main
+      class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full relative z-10 flex flex-col items-center"
+    >
+      <header class="text-center mb-12 animate-fade-in-down">
+        <h2 class="text-3xl sm:text-4xl font-bold text-red-600 mb-4">
+          أقسام المصروفات
+        </h2>
+        <p class="text-lg text-slate-600 font-semibold max-w-2xl mx-auto">
+          الرجاء اختيار قسم المصروفات الذي تود الاطلاع عليه أو إدارته
+        </p>
+      </header>
+
+      <!-- Expenses Grid -->
+      <nav
+        id="expensesContainer"
+        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 w-full max-w-7xl"
+        aria-label="أقسام المصروفات"
+      >
+        <!-- Categories will be injected here dynamically -->
+      </nav>
+
+      <!-- Bottom Expenses Grid (For the last two items to span the full width) -->
+      <nav
+        id="bottomExpensesContainer"
+        class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-5xl mt-6 mx-auto"
+        aria-label="أقسام المصروفات الإضافية"
+      >
+        <!-- The last two categories will be injected here -->
+      </nav>
+    </main>
+  </body>
+</html>

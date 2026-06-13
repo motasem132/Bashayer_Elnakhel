@@ -1,0 +1,155 @@
+/* 
+ * Global Styles for Bashayer Elnakhel Dashboard
+ */
+
+:root {
+  --font-primary: "Cairo", "Inter", sans-serif;
+}
+
+body {
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+/* Shake Animation for Login */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-10px);
+  }
+  40% {
+    transform: translateX(10px);
+  }
+  60% {
+    transform: translateX(-10px);
+  }
+  80% {
+    transform: translateX(10px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Custom styled checkboxes with animation (Dashboard) */
+.care-checkbox {
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.375rem;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  background-color: white;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.care-checkbox:checked {
+  background-color: #378b47;
+  border-color: #378b47;
+  animation: pop 0.3s ease-in-out;
+  box-shadow: 0 0 0 2px rgba(55, 139, 71, 0.2);
+}
+
+.care-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 0.4rem;
+  height: 0.75rem;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.care-checkbox:hover:not(:checked) {
+  border-color: #8B6F47;
+  background-color: #f8f4ec;
+}
+
+/* Smaller checkbox variant for the modal form */
+.care-checkbox-sm {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-width: 2px;
+  border-radius: 0.25rem;
+}
+
+.care-checkbox-sm:checked::after {
+  width: 0.3rem;
+  height: 0.6rem;
+  border-width: 0 2px 2px 0;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Custom scrollbar for table container */
+.table-scroll {
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: #fbf9f5;
+  border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #8B6F47;
+  border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #7B5D38;
+}
+
+/* Hide number input spinners (arrows) */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Ensure date inputs are LTR to keep dd/mm/yyyy order consistent and clean */
+input[type="date"] {
+  direction: ltr;
+  text-align: right;
+}
+
+
+
+
+
+

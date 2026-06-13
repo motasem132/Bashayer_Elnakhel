@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تفاصيل المصروفات - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS for Excel export with Styles (xlsx-js-style) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const category = urlParams.get('category') || 'قسم غير معروف';
+        document.getElementById('categoryName').textContent = category;
+
+        // Firebase key: replace invalid path characters
+        const firebaseKey = category.replace(/[.#$\[\]/]/g, '_');
+        const dbRef = () => window.dataService && window.dataService.db
+          ? window.dataService.db.ref(`expenses/${firebaseKey}`)
+          : null;
+
+        let expenses = [];
+
+        function renderTable() {
+          const tbody = document.getElementById('expensesTableBody');
+          tbody.innerHTML = '';
+          let total = 0;
+          
+          // Append inline add row FIRST
+          const inputTr = document.createElement("tr");
+          inputTr.className = "bg-red-50 border-b-2 border-red-200 shadow-sm";
+          const nextCode = String(expenses.length + 1);
+          const todayDate = window.lastUsedDate || new Date().toISOString().split('T')[0];
+          inputTr.innerHTML = `
+            <td class="px-2 py-3"><input type="text" id="inlineCode" value="${nextCode}" class="w-full px-3 py-2 rounded-lg border border-red-200 focus:ring-2 focus:ring-red-500 text-sm font-bold bg-white shadow-sm" placeholder="الكود"></td>
+            <td class="px-2 py-3"><input type="date" id="inlineDate" value="${todayDate}" class="w-full px-3 py-2 rounded-lg border border-red-200 focus:ring-2 focus:ring-red-500 text-sm font-bold bg-white shadow-sm"></td>
+            <td class="px-2 py-3"><input type="text" id="inlineItem" class="w-full px-3 py-2 rounded-lg border border-red-200 focus:ring-2 focus:ring-red-500 text-sm font-bold bg-white shadow-sm" placeholder="اسم المصروف" onkeydown="if(event.key === 'Enter') saveInlineExpense()"></td>
+            <td class="px-2 py-3"><input type="number" id="inlineAmount" min="0" step="any" class="w-full px-3 py-2 rounded-lg border border-red-200 focus:ring-2 focus:ring-red-500 text-sm font-bold bg-white shadow-sm" placeholder="المبلغ" onkeydown="if(event.key === 'Enter') saveInlineExpense()"></td>
+            <td class="px-2 py-3 text-center">
+              <button onclick="saveInlineExpense()" class="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors flex items-center gap-1 w-full justify-center shadow-sm font-bold">
+                <i data-lucide="plus" class="w-5 h-5"></i> إضافة
+              </button>
+            </td>
+          `;
+          tbody.appendChild(inputTr);
+          
+          if (!expenses.length) {
+            const emptyTr = document.createElement("tr");
+            emptyTr.innerHTML = `
+                <td colspan="5" class="text-center py-10 text-slate-400 font-semibold">
+                  <div class="flex flex-col items-center gap-2">
+                    <i data-lucide="inbox" class="w-8 h-8 text-slate-300"></i>
+                    <span>لا توجد مصروفات مضافة لهذا القسم</span>
+                  </div>
+                </td>
+            `;
+            tbody.appendChild(emptyTr);
+          } else {
+            expenses.forEach((expense, index) => {
+              total += parseFloat(expense.amount) || 0;
+              const tr = document.createElement('tr');
+              tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0";
+              tr.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-700">${expense.code || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-600">${expense.date || '-'}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-slate-800">${expense.item || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-extrabold text-red-600">${parseFloat(expense.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ج.م</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-center">
+                  <button onclick="deleteExpense(${index})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+          document.getElementById('totalAmount').textContent = total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+          if (typeof lucide !== "undefined") lucide.createIcons();
+          
+          if (window.shouldFocusInlineCode) {
+            setTimeout(() => {
+              const el = document.getElementById('inlineCode');
+              if(el) el.focus();
+            }, 50);
+            window.shouldFocusInlineCode = false;
+          }
+        }
+
+        window.deleteExpense = (index) => {
+          if (confirm("هل أنت متأكد من حذف هذا المصروف؟")) {
+            expenses.splice(index, 1);
+            const ref = dbRef();
+            if (ref) {
+              ref.set(expenses.length > 0 ? expenses : null);
+            }
+            renderTable();
+          }
+        };
+
+        const modal = document.getElementById('expenseModal');
+        const form = document.getElementById('expenseForm');
+
+        window.openModal = () => {
+          form.reset();
+          const today = new Date().toISOString().split('T')[0];
+          document.getElementById('expenseDate').value = today;
+          document.getElementById('expenseCode').value = String(expenses.length + 1);
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        };
+
+        window.closeModal = () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        };
+
+        function getExpenseData() {
+          return {
+            code: document.getElementById('expenseCode').value,
+            date: document.getElementById('expenseDate').value,
+            item: document.getElementById('expenseItem').value,
+            amount: document.getElementById('expenseAmount').value
+          };
+        }
+
+        function saveExpense(data) {
+          expenses.push(data);
+          const ref = dbRef();
+          if (ref) {
+            ref.set(expenses);
+          }
+          renderTable();
+        }
+
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          saveExpense(getExpenseData());
+          closeModal();
+        });
+
+        window.saveExpenseAndAddAnother = () => {
+          if(!form.checkValidity()) {
+            form.reportValidity();
+            return;
+          }
+          
+          saveExpense(getExpenseData());
+          
+          // Clear specific fields (keep date)
+          document.getElementById('expenseCode').value = String(expenses.length + 1);
+          document.getElementById('expenseItem').value = '';
+          document.getElementById('expenseAmount').value = '';
+          
+          // Focus first input
+          document.getElementById('expenseCode').focus();
+          
+          // Visual feedback
+          const btn = document.querySelector('button[onclick="saveExpenseAndAddAnother()"]');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> تم الحفظ`;
+          if (typeof lucide !== "undefined") lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+          }, 1000);
+        };
+
+        window.saveInlineExpense = () => {
+          const code = document.getElementById('inlineCode').value;
+          const date = document.getElementById('inlineDate').value;
+          const item = document.getElementById('inlineItem').value;
+          const amount = document.getElementById('inlineAmount').value;
+          
+          if (!item || !amount) {
+            alert('يرجى إدخال اسم المصروف والمبلغ على الأقل');
+            return;
+          }
+          
+          window.lastUsedDate = date;
+          window.shouldFocusInlineCode = true;
+          
+          saveExpense({ code, date, item, amount });
+        };
+
+        // Subscribe to real-time Firebase updates
+        function startFirebaseListener() {
+          const ref = dbRef();
+          if (ref) {
+            ref.on('value', (snapshot) => {
+              const data = snapshot.val();
+              expenses = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+              renderTable();
+            });
+          } else {
+            // Firebase not ready yet, retry shortly
+            setTimeout(startFirebaseListener, 300);
+          }
+        }
+
+        startFirebaseListener();
+
+        // Export to Excel
+        window.exportToExcel = () => {
+          if (!expenses.length) {
+            alert('لا توجد مصروفات لتصديرها.');
+            return;
+          }
+
+          const catName = document.getElementById('categoryName').textContent || 'مصروفات';
+          const exportDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+          const title = `مصروفات قسم: ${catName}`;
+
+          // ترتيب الأعمدة من اليمين لليسار:
+          // A (يمين) = الكود | B = التاريخ | C = البند | D (يسار) = المبلغ
+          // مع RTL يظهر A على اليمين تلقائياً
+
+          const rows = [
+            [title, '', '', ''],
+            [`تاريخ التصدير: ${exportDate}`, '', '', ''],
+            ['', '', '', ''],
+            ['الكود', 'التاريخ', 'البند', 'المبلغ (ج.م)']
+          ];
+
+          let total = 0;
+          expenses.forEach(exp => {
+            const amt = parseFloat(exp.amount) || 0;
+            total += amt;
+            rows.push([
+              exp.code || '-',
+              exp.date || '-',
+              exp.item || '-',
+              amt
+            ]);
+          });
+
+          rows.push(['', '', '', '']);
+          rows.push(['الإجمالي الكلي', '', '', total]);
+
+          const headerStyle = {
+            fill: { fgColor: { rgb: "107C41" } },
+            font: { name: "Arial", bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const dataStyle = {
+            font: { name: "Arial", sz: 11 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const totalStyle = {
+            fill: { fgColor: { rgb: "E2EFDA" } },
+            font: { name: "Arial", bold: true, color: { rgb: "000000" }, sz: 12 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left: { style: "thin", color: { rgb: "CCCCCC" } },
+              right: { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+
+          // تطبيق التنسيقات على الخلايا
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const cell_address = { c: C, r: R };
+              const cell_ref = XLSX.utils.encode_cell(cell_address);
+              if (!ws[cell_ref]) ws[cell_ref] = { t: "s", v: "" };
+              
+              if (R === 3) {
+                // صف رؤوس الأعمدة
+                ws[cell_ref].s = headerStyle;
+              } else if (R >= 4 && R < rows.length - 2) {
+                // صفوف البيانات
+                ws[cell_ref].s = dataStyle;
+                // تنسيق الأرقام لعمود المبلغ
+                if (C === 3 && typeof ws[cell_ref].v === 'number') {
+                  ws[cell_ref].z = '#,##0.00';
+                }
+              } else if (R === rows.length - 1) {
+                // صف الإجمالي
+                ws[cell_ref].s = totalStyle;
+                if (C === 3 && typeof ws[cell_ref].v === 'number') {
+                  ws[cell_ref].z = '#,##0.00';
+                }
+              } else if (R < 3) {
+                // صفوف العنوان وتاريخ التصدير
+                ws[cell_ref].s = {
+                  font: { name: "Arial", bold: true, sz: 14, color: { rgb: "107C41" } },
+                  alignment: { horizontal: "center", vertical: "center" }
+                };
+              }
+            }
+          }
+
+          // عرض الأعمدة: A=الكود، B=التاريخ، C=البند، D=المبلغ
+          ws['!cols'] = [
+            { wch: 14 },  // الكود
+            { wch: 16 },  // التاريخ
+            { wch: 45 },  // البند
+            { wch: 20 }   // المبلغ
+          ];
+
+          // ارتفاع الصفوف
+          ws['!rows'] = [
+            { hpt: 26 },  // العنوان
+            { hpt: 20 },  // التاريخ
+            { hpt: 8 },   // فراغ
+            { hpt: 22 }   // رؤوس الأعمدة
+          ];
+
+          // دمج صف العنوان A1:D1
+          ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+            { s: { r: rows.length - 1, c: 0 }, e: { r: rows.length - 1, c: 2 } }
+          ];
+
+          // *** RTL: البداية من اليمين ***
+          ws['!views'] = [{ rightToLeft: true }];
+
+          const wb = XLSX.utils.book_new();
+          const sheetName = catName.substring(0, 31);
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+          const safeCategory = catName.replace(/[\\\/:*?"<>|]/g, '_');
+          XLSX.writeFile(wb, `مصروفات_${safeCategory}.xlsx`);
+        };
+      });
+    </script>
+  </head>
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+    <!-- Background Decor Elements -->
+    <div class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-red-500/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+
+    <!-- Main Navigation Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-[3px] border-red-500 shadow-sm sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+          <img src="icons/Logo.png" alt="شعار شركة بشاير النخيل" class="h-16 w-auto object-contain" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-red-600">
+              تفاصيل <span id="categoryName">القسم</span>
+            </h1>
+            <p class="text-slate-500 text-sm mt-0.5 font-bold">
+              إدارة مصروفات القسم
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a href="expenses_categories.html" class="flex-1 sm:flex-none bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-slate-200 transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>الرجوع</span>
+          </a>
+          <button onclick="exportToExcel()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            <span>تصدير Excel</span>
+          </button>
+          <button onclick="openModal()" class="flex-1 sm:flex-none bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>إضافة مصروف</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+      
+      <!-- Stats / Total -->
+      <div class="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-slate-800">إجمالي مصروفات القسم</h2>
+        <div class="text-2xl font-extrabold text-red-600"><span id="totalAmount">0</span> ج.م</div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">كود</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">التاريخ</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">البند</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">المبلغ</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody" class="divide-y divide-slate-100">
+              <!-- Rows will be dynamically added here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- Add Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-down border border-slate-200">
+        <div class="bg-gradient-to-r from-red-600 to-red-500 p-5 flex justify-between items-center text-white">
+          <h3 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="file-plus" class="w-6 h-6"></i>
+            إضافة مصروف جديد
+          </h3>
+          <button onclick="closeModal()" class="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+        <form id="expenseForm" class="p-6 space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label for="expenseCode" class="block text-sm font-bold text-slate-700">الكود</label>
+              <input type="text" id="expenseCode" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold" placeholder="أدخل كود المصروف">
+            </div>
+            <div class="space-y-1.5">
+              <label for="expenseDate" class="block text-sm font-bold text-slate-700">التاريخ</label>
+              <input type="date" id="expenseDate" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold">
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <label for="expenseItem" class="block text-sm font-bold text-slate-700">البند</label>
+            <input type="text" id="expenseItem" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold" placeholder="أدخل اسم أو وصف البند">
+          </div>
+          <div class="space-y-1.5">
+            <label for="expenseAmount" class="block text-sm font-bold text-slate-700">المبلغ (ج.م)</label>
+            <input type="number" id="expenseAmount" required min="0" step="any" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all font-semibold" placeholder="0.00">
+          </div>
+          <div class="pt-4 flex flex-wrap justify-end gap-3 border-t border-slate-100">
+            <button type="button" onclick="closeModal()" class="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+              إلغاء
+            </button>
+            <button type="button" onclick="saveExpenseAndAddAnother()" class="px-6 py-2.5 rounded-xl font-bold text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-2">
+              <i data-lucide="plus" class="w-5 h-5"></i>
+              حفظ وإضافة جديد
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors flex items-center gap-2">
+              <i data-lucide="save" class="w-5 h-5"></i>
+              حفظ وإغلاق
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

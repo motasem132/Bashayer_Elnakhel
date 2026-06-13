@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بشاير النخيل - صفحة العميل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sectorId = urlParams.get("sector");
+        const clientId = urlParams.get("client");
+    </script>
+
+    <style>
+      /* ========== Upload Zone Styles ========== */
+      .upload-zone {
+        border: 2px dashed #8B6F47;
+        border-radius: 16px;
+        background: #FBF9F5;
+        transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+      .upload-zone:hover,
+      .upload-zone.drag-over {
+        border-color: #378B47;
+        background: #eaf4eb;
+        box-shadow: 0 0 0 4px rgba(55,139,71,0.08);
+      }
+      .upload-zone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+      .upload-zone .file-name {
+        font-size: 0.78rem;
+        color: #378B47;
+        font-weight: 700;
+        margin-top: 6px;
+        word-break: break-all;
+        text-align: center;
+      }
+      .upload-zone .remove-btn {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 2px 6px;
+        font-size: 0.7rem;
+        color: #ef4444;
+        cursor: pointer;
+        font-weight: 700;
+        z-index: 10;
+        transition: background 0.15s;
+      }
+      .upload-zone .remove-btn:hover { background: #fee2e2; }
+
+      /* ========== Info Card Styles ========== */
+      .info-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #8B6F47;
+        margin-bottom: 2px;
+        letter-spacing: 0.03em;
+      }
+      .info-value {
+        font-size: 0.92rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      /* ========== Installment Badge ========== */
+      .inst-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 9999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
+      /* Only 2 states: green = paid, red = unpaid/late */
+      .inst-paid   { background: #d1fae5; color: #047857; }
+      .inst-unpaid { background: #fee2e2; color: #b91c1c; }
+      .inst-late   { background: #fee2e2; color: #b91c1c; }
+
+      /* ========== Plot Number Badges ========== */
+      .plot-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        background: #f8f4ec;
+        color: #8B6F47;
+        border: 1px solid rgba(139,111,71,0.3);
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.02em;
+      }
+
+      /* ========== Animations ========== */
+      @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-18px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-down { animation: fadeInDown 0.5s ease both; }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in-up { animation: fadeInUp 0.5s ease both; }
+    </style>
+  </head>
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+    <!-- Background Decor Elements -->
+    <div class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-brand-green/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+
+    <!-- Main Navigation Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-[3px] border-brand-gold shadow-sm sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+          <img src="icons/Logo.png" alt="شعار شركة بشاير النخيل" class="h-16 w-auto object-contain" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-brand-green">بشاير النخيل</h1>
+            <p class="text-brand-gold text-sm mt-0.5 font-bold">إدارة متميزة للمزارع</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button onclick="window.history.back()" class="flex-1 sm:flex-none bg-white hover:bg-brand-cream text-brand-gold font-bold py-2.5 px-6 rounded-xl shadow-sm border border-brand-gold/30 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-gold/20">
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>رجوع</span>
+          </button>
+          <button onclick="SessionManager.logout()" class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-200">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full relative z-10">
+
+      <!-- Client Header -->
+      <header class="text-center mb-10 animate-fade-in-down">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-greenLight text-brand-green mb-4 border-4 border-white shadow-lg">
+          <i data-lucide="user" class="w-10 h-10"></i>
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-bold text-brand-green mb-3" id="clientNameDisplay">
+          جاري تحميل بيانات العميل...
+        </h2>
+        <div class="flex items-center justify-center gap-4 text-base text-slate-600 font-semibold">
+          <span class="flex items-center gap-2"><i data-lucide="hash" class="w-4 h-4 text-brand-gold"></i> <span id="clientCodeDisplay">-</span></span>
+          <span class="text-brand-gold">|</span>
+          <span class="flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-brand-gold"></i> القطاع <span id="clientSectorDisplay">-</span></span>
+        </div>
+      </header>
+
+      <!-- 3:1 Split Grid -->
+      <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 animate-fade-in-up">
+
+        <!-- ===================== RIGHT (3/4): Client Data ===================== -->
+        <section class="xl:col-span-3 space-y-6">
+
+          <!-- Basic Info Card -->
+          <div class="bg-white rounded-3xl border border-brand-gold/20 shadow-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-brand-gold/15 bg-brand-greenLight/40">
+              <i data-lucide="user-circle" class="w-5 h-5 text-brand-green"></i>
+              <h3 class="font-bold text-brand-green text-base">البيانات الأساسية</h3>
+            </div>
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5" id="basicInfoGrid">
+              <!-- Populated by JS -->
+              <div class="col-span-full text-center py-6 text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
+                <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> جاري التحميل...
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Summary Card -->
+          <div class="bg-white rounded-3xl border border-brand-gold/20 shadow-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-brand-gold/15 bg-brand-goldLight/40">
+              <i data-lucide="banknote" class="w-5 h-5 text-brand-gold"></i>
+              <h3 class="font-bold text-brand-gold text-base">الملخص المالي</h3>
+            </div>
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4" id="financialSummaryGrid">
+              <div class="col-span-full text-center py-6 text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
+                <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> جاري التحميل...
+              </div>
+            </div>
+          </div>
+
+          <!-- Installments Card -->
+          <div class="bg-white rounded-3xl border border-brand-gold/20 shadow-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-brand-gold/15 bg-slate-50">
+              <i data-lucide="calendar-check" class="w-5 h-5 text-slate-600"></i>
+              <h3 class="font-bold text-slate-700 text-base">الأقساط</h3>
+            </div>
+            <div class="p-6">
+              <div id="installmentsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="col-span-full text-center py-6 text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
+                  <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> جاري التحميل...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Care Card -->
+          <div class="bg-white rounded-3xl border border-brand-gold/20 shadow-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-brand-gold/15 bg-emerald-50/50">
+              <i data-lucide="leaf" class="w-5 h-5 text-emerald-600"></i>
+              <h3 class="font-bold text-emerald-700 text-base">رعاية المحصول</h3>
+            </div>
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4" id="careGrid">
+              <div class="col-span-full text-center py-6 text-slate-400 text-sm font-bold flex items-center justify-center gap-2">
+                <i data-lucide="loader" class="w-4 h-4 animate-spin"></i> جاري التحميل...
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ===================== LEFT (1/4): Word File Uploads ===================== -->
+        <aside class="xl:col-span-1 space-y-4">
+          <div class="bg-white rounded-3xl border border-brand-gold/20 shadow-lg overflow-hidden">
+            <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-gold/15 bg-slate-50">
+              <i data-lucide="file-text" class="w-5 h-5 text-slate-600"></i>
+              <h3 class="font-bold text-slate-700 text-base">المستندات</h3>
+            </div>
+            <div class="p-4 space-y-4">
+
+              <!-- Upload Zone 1 -->
+              <div>
+                <p class="info-label mb-2">المستند الأول</p>
+                <div class="upload-zone p-5 flex flex-col items-center justify-center min-h-[110px]" id="zone1" ondragover="handleDragOver(event,'zone1')" ondragleave="handleDragLeave(event,'zone1')" ondrop="handleDrop(event,'zone1',1)">
+                  <input type="file" id="fileInput1" onchange="handleFileSelect(event,1)" />
+                  <i data-lucide="file-plus" class="w-8 h-8 text-brand-gold mb-2 pointer-events-none" id="zone1Icon"></i>
+                  <p class="text-xs font-bold text-slate-500 pointer-events-none" id="zone1Text">اسحب أي ملف هنا أو اضغط للرفع</p>
+                  <p class="file-name hidden" id="zone1FileName"></p>
+                  <button class="remove-btn hidden" id="zone1RemoveBtn" onclick="removeFile(event,1)">✕ حذف</button>
+                </div>
+                <div class="mt-2 hidden flex gap-2" id="zone1Actions">
+                  <button onclick="downloadFile(1)" class="flex-1 text-xs bg-blue-50 text-blue-600 font-bold py-1.5 px-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> تنزيل
+                  </button>
+                  <button onclick="openFile(1)" class="flex-1 text-xs bg-brand-greenLight text-brand-green font-bold py-1.5 px-3 rounded-xl border border-brand-green/20 hover:bg-brand-green hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> فتح
+                  </button>
+                </div>
+              </div>
+
+              <div class="border-t border-brand-gold/10"></div>
+
+              <!-- Upload Zone 2 -->
+              <div>
+                <p class="info-label mb-2">المستند الثاني</p>
+                <div class="upload-zone p-5 flex flex-col items-center justify-center min-h-[110px]" id="zone2" ondragover="handleDragOver(event,'zone2')" ondragleave="handleDragLeave(event,'zone2')" ondrop="handleDrop(event,'zone2',2)">
+                  <input type="file" id="fileInput2" onchange="handleFileSelect(event,2)" />
+                  <i data-lucide="file-plus" class="w-8 h-8 text-brand-gold mb-2 pointer-events-none" id="zone2Icon"></i>
+                  <p class="text-xs font-bold text-slate-500 pointer-events-none" id="zone2Text">اسحب أي ملف هنا أو اضغط للرفع</p>
+                  <p class="file-name hidden" id="zone2FileName"></p>
+                  <button class="remove-btn hidden" id="zone2RemoveBtn" onclick="removeFile(event,2)">✕ حذف</button>
+                </div>
+                <div class="mt-2 hidden flex gap-2" id="zone2Actions">
+                  <button onclick="downloadFile(2)" class="flex-1 text-xs bg-blue-50 text-blue-600 font-bold py-1.5 px-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> تنزيل
+                  </button>
+                  <button onclick="openFile(2)" class="w-full text-xs bg-brand-greenLight text-brand-green font-bold py-1.5 px-3 rounded-xl border border-brand-green/20 hover:bg-brand-green hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> فتح
+                  </button>
+                </div>
+              </div>
+
+              <div class="border-t border-brand-gold/10"></div>
+
+              <!-- Upload Zone 3 -->
+              <div>
+                <p class="info-label mb-2">المستند الثالث</p>
+                <div class="upload-zone p-5 flex flex-col items-center justify-center min-h-[110px]" id="zone3" ondragover="handleDragOver(event,'zone3')" ondragleave="handleDragLeave(event,'zone3')" ondrop="handleDrop(event,'zone3',3)">
+                  <input type="file" id="fileInput3" onchange="handleFileSelect(event,3)" />
+                  <i data-lucide="file-plus" class="w-8 h-8 text-brand-gold mb-2 pointer-events-none" id="zone3Icon"></i>
+                  <p class="text-xs font-bold text-slate-500 pointer-events-none" id="zone3Text">اسحب أي ملف هنا أو اضغط للرفع</p>
+                  <p class="file-name hidden" id="zone3FileName"></p>
+                  <button class="remove-btn hidden" id="zone3RemoveBtn" onclick="removeFile(event,3)">✕ حذف</button>
+                </div>
+                <div class="mt-2 hidden flex gap-2" id="zone3Actions">
+                  <button onclick="downloadFile(3)" class="flex-1 text-xs bg-blue-50 text-blue-600 font-bold py-1.5 px-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> تنزيل
+                  </button>
+                  <button onclick="openFile(3)" class="w-full text-xs bg-brand-greenLight text-brand-green font-bold py-1.5 px-3 rounded-xl border border-brand-green/20 hover:bg-brand-green hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> فتح
+                  </button>
+                </div>
+              </div>
+
+              <div class="border-t border-brand-gold/10"></div>
+
+              <!-- Upload Zone 4 -->
+              <div>
+                <p class="info-label mb-2">المستند الرابع</p>
+                <div class="upload-zone p-5 flex flex-col items-center justify-center min-h-[110px]" id="zone4" ondragover="handleDragOver(event,'zone4')" ondragleave="handleDragLeave(event,'zone4')" ondrop="handleDrop(event,'zone4',4)">
+                  <input type="file" id="fileInput4" onchange="handleFileSelect(event,4)" />
+                  <i data-lucide="file-plus" class="w-8 h-8 text-brand-gold mb-2 pointer-events-none" id="zone4Icon"></i>
+                  <p class="text-xs font-bold text-slate-500 pointer-events-none" id="zone4Text">اسحب أي ملف هنا أو اضغط للرفع</p>
+                  <p class="file-name hidden" id="zone4FileName"></p>
+                  <button class="remove-btn hidden" id="zone4RemoveBtn" onclick="removeFile(event,4)">✕ حذف</button>
+                </div>
+                <div class="mt-2 hidden flex gap-2" id="zone4Actions">
+                  <button onclick="downloadFile(4)" class="flex-1 text-xs bg-blue-50 text-blue-600 font-bold py-1.5 px-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i> تنزيل
+                  </button>
+                  <button onclick="openFile(4)" class="text-xs bg-brand-greenLight text-brand-green font-bold py-1.5 px-3 rounded-xl border border-brand-green/20 hover:bg-brand-green hover:text-white transition-colors flex items-center justify-center gap-1.5">
+                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i> فتح
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </aside>
+
+      </div><!-- end 3:1 grid -->
+    </main>
+
+    <script>
+      /* ========== Utility ========== */
+      function fmt(val, unit = "") {
+        if (val === undefined || val === null || val === "" || val === "-") return "-";
+        const n = Number(val);
+        if (isNaN(n)) return val;
+        return n.toLocaleString("en-US") + (unit ? " " + unit : "");
+      }
+
+      function fmtDate(dateStr) {
+        if (!dateStr) return "-";
+        const parts = dateStr.split("-");
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return dateStr;
+      }
+
+      function isOverdue(client, num) {
+        const isChecked = client[`inst${num}_check`];
+        const val = parseFloat(client[`inst${num}`]) || 0;
+        const dateStr = client[`inst${num}Date`];
+        if (val > 0 && !isChecked && dateStr) {
+          let year, month, day;
+          const parse = (str) => {
+            if (str.includes("-")) {
+              const p = str.split("-");
+              if (p[0].length === 4) return [parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])];
+              if (p[2].length === 4) return [parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0])];
+            }
+            if (str.includes("/")) {
+              const p = str.split("/");
+              if (p[2]?.length === 4) return [parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0])];
+              if (p[0]?.length === 4) return [parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])];
+            }
+            const d = new Date(str);
+            return isNaN(d) ? null : [d.getFullYear(), d.getMonth(), d.getDate()];
+          };
+          const parsed = parse(dateStr);
+          if (parsed) {
+            const due = new Date(parsed[0], parsed[1], parsed[2]);
+            const today = new Date(); today.setHours(0,0,0,0);
+            return due <= today;
+          }
+        }
+        return false;
+      }
+
+      /* ========== Render Client Data ========== */
+      function renderClient(client, sectorName) {
+        // --- Header ---
+        document.getElementById("clientNameDisplay").textContent = client.name || "بدون اسم";
+        document.getElementById("clientCodeDisplay").textContent = client.clientCode || client.id || "-";
+        document.getElementById("clientSectorDisplay").textContent = sectorName || sectorId;
+
+        // --- Basic Info ---
+        const plotsArr = Array.isArray(client.plotNumber)
+          ? client.plotNumber
+          : (client.plotNumber ? [client.plotNumber] : []);
+        const plotsBadges = plotsArr.length
+          ? plotsArr.map(p => `<span class="plot-badge">${p}</span>`).join(" ")
+          : "-";
+
+        const basicFields = [
+          { label: "كود العميل",    val: client.clientCode || client.id || "-", icon: "hash" },
+          { label: "الاسم الكامل",  val: client.name || "-",                    icon: "user" },
+          { label: "رقم الهاتف",    val: client.mobile || "-",                  icon: "phone" },
+          { label: "المساحة",       val: fmt(client.area, "فدان"),              icon: "expand" },
+          { label: "ملاحظات",       val: client.notes || "-",                   icon: "message-square" },
+        ];
+
+        const basicHTML = basicFields.map(f => `
+          <div class="bg-brand-cream/60 rounded-2xl p-4 border border-brand-gold/10">
+            <div class="info-label flex items-center gap-1.5 mb-1">
+              <i data-lucide="${f.icon}" class="w-3.5 h-3.5"></i>${f.label}
+            </div>
+            <div class="info-value break-words">${f.val}</div>
+          </div>
+        `).join("");
+
+        // Plot numbers get their own full-width card with badges
+        const plotsCard = `
+          <div class="col-span-full bg-brand-cream/60 rounded-2xl p-4 border border-brand-gold/10">
+            <div class="info-label flex items-center gap-1.5 mb-2">
+              <i data-lucide="map" class="w-3.5 h-3.5"></i>أرقام القطع
+            </div>
+            <div class="flex flex-wrap gap-2">${plotsBadges}</div>
+          </div>
+        `;
+
+        document.getElementById("basicInfoGrid").innerHTML = basicHTML + plotsCard;
+
+        // --- Financial Summary ---
+        // Calculate total paid
+        let totalPaid = 0;
+        if (client.downPayment) totalPaid += Number(client.downPayment) || 0;
+        for (let i = 1; i <= 10; i++) {
+          if (client[`inst${i}_check`] && client[`inst${i}`]) {
+            totalPaid += Number(client[`inst${i}`]) || 0;
+          }
+        }
+        if (client.outstandingInstallments) totalPaid -= Number(client.outstandingInstallments) || 0;
+
+        const contractVal = Number(client.contractValue) || 0;
+        const remaining = contractVal - totalPaid;
+
+        const financialFields = [
+          { label: "قيمة العقد",         val: fmt(client.contractValue, "ج.م"),             color: "text-slate-700",   bg: "bg-white",        border: "border-slate-200" },
+          { label: "دفعة التعاقد",       val: fmt(client.downPayment, "ج.م"),               color: "text-brand-green", bg: "bg-white",        border: "border-slate-200" },
+          { label: "تاريخ الدفعة",       val: fmtDate(client.downPaymentDate),              color: "text-slate-500",   bg: "bg-white",        border: "border-slate-200" },
+          { label: "إجمالي المدفوع",     val: fmt(totalPaid, "ج.م"),                        color: "text-brand-green", bg: "bg-emerald-50",   border: "border-emerald-200" },
+          { label: "المتبقي",             val: fmt(remaining, "ج.م"),                        color: "text-red-600",     bg: "bg-red-50",       border: "border-red-200" },
+          { label: "الرعاية الإجمالية",  val: fmt(client.totalCare, "ج.م"),                color: "text-slate-700",   bg: "bg-white",        border: "border-slate-200" },
+          { label: "أقساط متأخرة",       val: fmt(client.outstandingInstallments, "ج.م"),  color: "text-red-600",     bg: "bg-red-50",       border: "border-red-200" },
+        ];
+
+        document.getElementById("financialSummaryGrid").innerHTML = financialFields.map(f => `
+          <div class="rounded-2xl p-4 border ${f.bg} ${f.border}">
+            <div class="info-label mb-1">${f.label}</div>
+            <div class="text-base font-extrabold ${f.color}">${f.val}</div>
+          </div>
+        `).join("");
+
+        // --- Installments ---
+        const instNames = ["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر"];
+        let instHTML = "";
+        for (let i = 1; i <= 10; i++) {
+          const val = client[`inst${i}`];
+          if (!val) continue;
+          const checked = client[`inst${i}_check`];
+          const date = fmtDate(client[`inst${i}Date`]);
+          const late = isOverdue(client, i);
+          // Green = paid, Red = unpaid or late
+          const isPaid = !!checked;
+          const badgeClass = isPaid ? "inst-paid" : "inst-unpaid";
+          const badgeText = isPaid ? "مدفوع" : "لم يُدفع";
+          const badgeIcon = isPaid ? "check-circle" : "x-circle";
+          const cardBorder = !isPaid ? "border-red-200 bg-red-50/20" : "border-emerald-200 bg-emerald-50/20";
+          const valColor = isPaid ? "text-brand-green" : "text-red-600";
+
+          instHTML += `
+            <div class="rounded-2xl border p-4 ${cardBorder}">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold text-slate-500">القسط ${instNames[i-1]}</span>
+                <span class="inst-badge ${badgeClass}">
+                  <i data-lucide="${badgeIcon}" class="w-3 h-3"></i>${badgeText}
+                </span>
+              </div>
+              <div class="text-lg font-extrabold ${valColor} mb-1">${fmt(val, "ج.م")}</div>
+              <div class="text-xs font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3 h-3"></i>${date}
+              </div>
+            </div>
+          `;
+        }
+        document.getElementById("installmentsGrid").innerHTML = instHTML ||
+          '<div class="col-span-full text-center text-slate-400 text-sm font-bold py-4">لا توجد أقساط مسجلة</div>';
+
+        // --- Care ---
+        const careMonths = ["أبريل","يوليو","أكتوبر","يناير"];
+        let careHTML = "";
+        for (let i = 1; i <= 4; i++) {
+          const val = client[`care${i}_val`];
+          const paid = !!client[`care${i}`];
+          // Green = paid, Red = unpaid
+          const badgeClass = paid ? "inst-paid" : "inst-unpaid";
+          const badgeText = paid ? "مدفوع" : "لم يُدفع";
+          const badgeIcon = paid ? "check-circle" : "x-circle";
+          const cardBorder = paid ? "border-emerald-200 bg-emerald-50/20" : "border-red-200 bg-red-50/20";
+          const valColor = paid ? "text-brand-green" : "text-red-600";
+          careHTML += `
+            <div class="rounded-2xl border ${cardBorder} p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold text-slate-500">رعاية ${careMonths[i-1]}</span>
+                <span class="inst-badge ${badgeClass}"><i data-lucide="${badgeIcon}" class="w-3 h-3"></i>${badgeText}</span>
+              </div>
+              <div class="text-base font-extrabold ${valColor}">${fmt(val, "ج.م")}</div>
+            </div>
+          `;
+        }
+        document.getElementById("careGrid").innerHTML = careHTML;
+
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
+
+      /* ========== Upload Zone Logic ========== */
+      const uploadedFiles = { 1: null, 2: null, 3: null, 4: null };
+      let dbReady = false;
+
+      // Initialize IndexedDB for persistent file storage
+      function initDB() {
+        return new Promise((resolve) => {
+          const request = indexedDB.open('FileStorage', 1);
+          request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('files')) {
+              db.createObjectStore('files');
+            }
+          };
+          request.onsuccess = () => {
+            dbReady = true;
+            resolve(request.result);
+          };
+          request.onerror = () => {
+            console.error('IndexedDB initialization failed');
+            resolve(null);
+          };
+        });
+      }
+
+      async function saveFileToStorage(num, file) {
+        if (!dbReady) return;
+        const db = await new Promise(resolve => {
+          const request = indexedDB.open('FileStorage', 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => resolve(null);
+        });
+        if (!db) return;
+        
+        const tx = db.transaction('files', 'readwrite');
+        const store = tx.objectStore('files');
+        await new Promise(resolve => {
+          const req = store.put({ name: file.name, type: file.type, data: file }, `file${num}`);
+          req.onsuccess = resolve;
+        });
+        db.close();
+      }
+
+      async function getFileFromStorage(num) {
+        if (!dbReady) return null;
+        const db = await new Promise(resolve => {
+          const request = indexedDB.open('FileStorage', 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => resolve(null);
+        });
+        if (!db) return null;
+
+        return new Promise(resolve => {
+          const tx = db.transaction('files', 'readonly');
+          const store = tx.objectStore('files');
+          const request = store.get(`file${num}`);
+          request.onsuccess = () => {
+            const result = request.result;
+            db.close();
+            if (result && result.data) {
+              resolve(new File([result.data], result.name, { type: result.type }));
+            } else {
+              resolve(null);
+            }
+          };
+          request.onerror = () => {
+            db.close();
+            resolve(null);
+          };
+        });
+      }
+
+      async function removeFileFromStorage(num) {
+        if (!dbReady) return;
+        const db = await new Promise(resolve => {
+          const request = indexedDB.open('FileStorage', 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => resolve(null);
+        });
+        if (!db) return;
+
+        const tx = db.transaction('files', 'readwrite');
+        const store = tx.objectStore('files');
+        await new Promise(resolve => {
+          const req = store.delete(`file${num}`);
+          req.onsuccess = resolve;
+        });
+        db.close();
+      }
+
+      function handleFileSelect(event, num) {
+        const file = event.target.files[0];
+        if (file) setFile(num, file);
+      }
+
+      async function setFile(num, file) {
+        uploadedFiles[num] = file;
+        await saveFileToStorage(num, file);
+        document.getElementById(`zone${num}FileName`).textContent = file.name;
+        document.getElementById(`zone${num}FileName`).classList.remove("hidden");
+        document.getElementById(`zone${num}RemoveBtn`).classList.remove("hidden");
+        document.getElementById(`zone${num}Icon`).setAttribute("data-lucide", "file-check");
+        document.getElementById(`zone${num}Text`).textContent = "ملف محدد ✓";
+        document.getElementById(`zone${num}Actions`).classList.remove("hidden");
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
+
+      async function removeFile(event, num) {
+        event.preventDefault();
+        event.stopPropagation();
+        uploadedFiles[num] = null;
+        await removeFileFromStorage(num);
+        document.getElementById(`fileInput${num}`).value = "";
+        document.getElementById(`zone${num}FileName`).classList.add("hidden");
+        document.getElementById(`zone${num}RemoveBtn`).classList.add("hidden");
+        document.getElementById(`zone${num}Icon`).setAttribute("data-lucide", "file-plus");
+        document.getElementById(`zone${num}Text`).textContent = "اسحب أي ملف هنا أو اضغط للرفع";
+        document.getElementById(`zone${num}Actions`).classList.add("hidden");
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
+
+      function downloadFile(num) {
+        const file = uploadedFiles[num];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+      }
+
+      function openFile(num) {
+        const file = uploadedFiles[num];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        window.open(url, "_blank");
+      }
+
+      function handleDragOver(event, zoneId) {
+        event.preventDefault();
+        document.getElementById(zoneId).classList.add("drag-over");
+      }
+
+      function handleDragLeave(event, zoneId) {
+        document.getElementById(zoneId).classList.remove("drag-over");
+      }
+
+      function handleDrop(event, zoneId, num) {
+        event.preventDefault();
+        document.getElementById(zoneId).classList.remove("drag-over");
+        const file = event.dataTransfer.files[0];
+        if (file) {
+          setFile(num, file);
+        }
+      }
+
+      async function restoreFilesFromStorage() {
+        for (let i = 1; i <= 4; i++) {
+          const file = await getFileFromStorage(i);
+          if (file) {
+            uploadedFiles[i] = file;
+            const num = i;
+            document.getElementById(`zone${num}FileName`).textContent = file.name;
+            document.getElementById(`zone${num}FileName`).classList.remove("hidden");
+            document.getElementById(`zone${num}RemoveBtn`).classList.remove("hidden");
+            document.getElementById(`zone${num}Icon`).setAttribute("data-lucide", "file-check");
+            document.getElementById(`zone${num}Text`).textContent = "ملف محدد ✓";
+            document.getElementById(`zone${num}Actions`).classList.remove("hidden");
+          }
+        }
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
+
+      /* ========== Init ========== */
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Initialize database and restore files
+        await initDB();
+        await restoreFilesFromStorage();
+
+        if (typeof lucide !== "undefined") lucide.createIcons();
+
+        if (window.dataService && sectorId && clientId) {
+          window.dataService.subscribeToSector(sectorId, (data) => {
+            if (data && data.clients) {
+              const client = data.clients.find(
+                c => String(c.id) === clientId || String(c.clientCode) === clientId
+              );
+              if (client) {
+                renderClient(client, data.name || sectorId);
+              } else {
+                document.getElementById("clientNameDisplay").textContent = "عميل غير موجود";
+                document.getElementById("basicInfoGrid").innerHTML =
+                  '<div class="col-span-full text-center py-6 text-red-400 font-bold">لم يتم العثور على بيانات هذا العميل.</div>';
+              }
+            }
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

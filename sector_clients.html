@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بشاير النخيل - عملاء القطاع</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const sectorId = urlParams.get("sector");
+      const sectorNames = [
+        "الأول",
+        "الثاني",
+        "الثالث",
+        "الرابع",
+        "الخامس",
+        "السادس",
+        "السابع",
+        "الثامن",
+        "التاسع",
+        "العاشر",
+      ];
+      const sectorName = sectorNames[sectorId - 1];
+    </script>
+  </head>
+
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+    <!-- Subtle Background Pattern -->
+    <div class="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23378B47\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white/90 backdrop-blur-md border-b-[3px] border-brand-gold shadow-sm sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-right w-full md:w-auto">
+          <img src="icons/Logo.png" alt="بشاير النخيل" class="h-12 sm:h-16 w-auto object-contain drop-shadow-sm" />
+          <div>
+            <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-brand-green flex flex-wrap justify-center sm:justify-start items-center gap-1 sm:gap-2">
+              <span>بشاير النخيل</span>
+              <span class="font-light opacity-80 text-base sm:text-xl hidden sm:inline-block text-slate-400">|</span>
+              <span class="text-brand-gold">عملاء القطاع</span>
+              <span id="sectorTitleDisplay" class="font-bold text-brand-gold break-words">...</span>
+            </h1>
+            <p class="text-brand-gold text-xs sm:text-sm mt-0.5 font-bold">
+              إدارة متميزة للمزارع
+            </p>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 sm:gap-3 w-full md:w-auto mt-2 sm:mt-0">
+          <a href="admin_sectors.html" class="flex-1 sm:flex-none bg-white hover:bg-brand-cream text-brand-gold font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm border border-brand-gold/30 transition-colors flex items-center justify-center gap-1.5 sm:gap-2">
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            <span class="text-xs sm:text-sm">رجوع للقطاعات</span>
+          </a>
+          <button onclick="window.sessionManager.logout()" class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-1.5 sm:gap-2">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="text-xs sm:text-sm">خروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+      
+      <!-- Search and Controls Area -->
+      <div class="bg-white rounded-3xl p-6 shadow-sm border border-brand-gold/20 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <h2 class="text-2xl font-bold text-brand-green flex items-center gap-2 w-full md:w-auto">
+          <i data-lucide="users" class="w-6 h-6 text-brand-gold"></i>
+          قائمة العملاء
+        </h2>
+        
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <!-- Search by Name -->
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"></i>
+            <input type="text" id="searchInput" placeholder="ابحث باسم العميل..."
+              class="w-full pr-11 pl-4 py-3 border-2 border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all shadow-sm bg-slate-50 font-bold text-brand-green placeholder-slate-400"
+              onkeyup="if(window.dashboardController) window.dashboardController.renderTable()" />
+          </div>
+
+          <!-- Search by Code -->
+          <div class="relative w-full sm:w-48">
+            <i data-lucide="hash" class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"></i>
+            <input type="text" id="codeSearchInput" placeholder="كود العميل..."
+              class="w-full pr-11 pl-4 py-3 border-2 border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-brand-green/20 focus:border-brand-green outline-none transition-all shadow-sm bg-slate-50 font-bold text-brand-green placeholder-slate-400"
+              onkeyup="if(window.dashboardController) window.dashboardController.renderTable()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Clients Grid -->
+      <div id="clientsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Client Cards injected by JS -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden flex-col items-center justify-center py-20 px-4 text-center bg-white rounded-3xl border border-brand-gold/20 shadow-sm">
+        <div class="bg-brand-greenLight p-6 rounded-full mb-6 text-brand-green shadow-inner border border-brand-green/20">
+          <i data-lucide="folder-search" class="w-12 h-12"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-brand-green mb-3">
+          لا يوجد عملاء حالياً
+        </h3>
+        <p class="text-slate-500 mb-0 font-medium text-lg">
+          لم يتم العثور على أي عملاء يطابقون بحثك في هذا القطاع.
+        </p>
+      </div>
+
+    </main>
+
+  </body>
+</html>

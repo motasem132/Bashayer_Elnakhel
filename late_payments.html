@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بشاير النخيل - المتأخرات والتعاقدات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+  </head>
+
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col">
+    <!-- Top Bar -->
+    <header class="bg-white border-b-[3px] border-brand-gold shadow-md sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-right w-full md:w-auto">
+          <img src="icons/Logo.png" alt="بشاير النخيل" class="h-12 sm:h-16 w-auto object-contain" />
+          <div>
+            <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-brand-green flex flex-wrap justify-center sm:justify-start items-center gap-1 sm:gap-2">
+              <span>بشاير النخيل</span>
+              <span class="font-light opacity-80 text-base sm:text-xl hidden sm:inline-block text-slate-400">| لوحة تحكم الحسابات</span>
+            </h1>
+            <p class="text-brand-gold text-xs sm:text-sm mt-0.5 font-bold">إدارة متميزة للمزارع</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 sm:gap-3 w-full md:w-auto mt-2 sm:mt-0">
+          <a href="accounts_sectors.html" class="flex-1 sm:flex-none bg-white hover:bg-brand-cream text-brand-gold font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm border border-brand-gold/30 transition-colors flex items-center justify-center gap-1.5 sm:gap-2">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+            <span class="text-xs sm:text-sm">القطاعات</span>
+          </a>
+          <button onclick="SessionManager.logout()" class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-1.5 sm:gap-2">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            <span class="text-xs sm:text-sm">خروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <!-- Page Header -->
+      <div class="mb-8 flex items-center gap-3">
+        <div class="p-3 bg-red-100 text-red-600 rounded-xl border border-red-200">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-red-700">المتأخرات والتعاقدات</h2>
+          <p class="text-slate-500 font-medium mt-1">عرض جميع الأقساط والدفعات المستحقة لجميع العملاء في جميع القطاعات</p>
+        </div>
+      </div>
+
+      <!-- Data Table Section -->
+      <div class="bg-white rounded-2xl shadow-md border border-brand-gold/20 overflow-hidden">
+        <!-- Table Header / Controls -->
+        <div class="p-5 border-b border-brand-gold/20 flex flex-col sm:flex-row justify-between items-center gap-4 bg-brand-cream/60">
+          <h2 class="text-lg font-bold text-brand-green flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-5 h-5 text-brand-gold"></i>
+            سجل المتأخرات
+          </h2>
+          <div class="flex flex-col sm:flex-row gap-2.5 items-center w-full sm:w-auto">
+            <!-- Global Search -->
+            <div class="relative w-full sm:w-72">
+              <i data-lucide="search" class="w-4 h-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-brand-gold"></i>
+              <input type="text" id="searchInput" placeholder="ابحث بالاسم، الهاتف، أو القطعة..." class="w-full pr-10 pl-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-green focus:border-brand-green outline-none transition-all shadow-sm bg-white font-bold text-brand-green" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Wrapper for scrolling -->
+        <div class="overflow-x-auto table-scroll">
+          <table class="w-full text-right border-collapse min-w-[1000px]">
+            <thead class="shadow-sm">
+              <tr class="bg-brand-cream border-b border-brand-gold/20 text-brand-green text-xs uppercase tracking-wider">
+                <th class="px-4 py-3 font-bold border-l border-brand-gold/10">الكود</th>
+                <th class="px-4 py-3 font-bold border-l border-brand-gold/10">اسم العميل</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">القطاع</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">الهاتف</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">القطعة</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">القسط</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">المبلغ</th>
+                <th class="px-4 py-3 font-bold text-center border-l border-brand-gold/10">تاريخ الاستحقاق</th>
+              </tr>
+            </thead>
+            <tbody id="lateTableBody" class="text-sm text-slate-700">
+              <!-- Rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-16 px-4 text-center bg-white">
+          <div class="bg-brand-greenLight p-5 rounded-full mb-5 text-brand-green shadow-inner border border-brand-green/20">
+            <i data-lucide="check-circle" class="w-10 h-10"></i>
+          </div>
+          <h3 class="text-xl font-bold text-brand-green mb-2">لا توجد متأخرات</h3>
+          <p class="text-slate-500 mb-6 max-w-sm font-medium">جميع العملاء قاموا بدفع أقساطهم في موعدها.</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-5 transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3 bg-slate-800 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-700">
+      <div class="bg-green-500/20 text-green-400 p-1.5 rounded-lg">
+        <i data-lucide="check" class="w-4 h-4"></i>
+      </div>
+      <span id="toastMessage" class="text-sm font-bold tracking-wide"></span>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تفاصيل قرارات الشهر - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS for Excel export with Styles (xlsx-js-style) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+
+    <style>
+      .net-positive { color: #1e7e34; }
+      .net-negative { color: #dc2626; }
+    </style>
+  </head>
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+    <!-- Background Decor Elements -->
+    <div class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-brand-green/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+
+    <!-- Main Navigation Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-[3px] border-brand-green shadow-sm sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+          <img src="icons/Logo.png" alt="شعار شركة بشاير النخيل" class="h-16 w-auto object-contain" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-brand-green">
+              تفاصيل <span id="monthNameDisplay">الشهر</span>
+            </h1>
+            <p class="text-slate-500 text-sm mt-0.5 font-bold">
+              إدارة بنود قرارات الصرف
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a href="decisions.html" class="flex-1 sm:flex-none bg-white hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-slate-200 transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>الرجوع للقرارات</span>
+          </a>
+          <button onclick="exportToExcel()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            <span>تصدير Excel</span>
+          </button>
+          <button onclick="openAddModal()" class="flex-1 sm:flex-none bg-brand-green hover:bg-brand-greenHover text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span>إضافة بند</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full relative z-10">
+      
+      <!-- Stats / Total -->
+      <div class="mb-8 bg-white rounded-3xl shadow-sm border border-brand-green/20 overflow-hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6">
+          <div class="text-center">
+            <p class="text-sm font-bold text-slate-500 mb-2">إجمالي الأقساط</p>
+            <p id="statInstallments" class="text-2xl font-extrabold text-slate-800">0 ج.م</p>
+          </div>
+          <div class="text-center border-t sm:border-t-0 sm:border-r border-slate-100 pt-4 sm:pt-0">
+            <p class="text-sm font-bold text-red-500 mb-2">إجمالي البنود (القرارات)</p>
+            <p id="statDeductions" class="text-2xl font-extrabold text-red-600">0 ج.م</p>
+          </div>
+          <div class="text-center border-t sm:border-t-0 sm:border-r border-slate-100 pt-4 sm:pt-0">
+            <p class="text-sm font-bold text-brand-green mb-2">الصافي</p>
+            <p id="statNet" class="text-2xl font-extrabold net-positive">0 ج.م</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-right">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">كود</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">التاريخ</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">البند</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">المبلغ</th>
+                <th scope="col" class="px-4 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="decisionsTableBody" class="divide-y divide-slate-100">
+              <!-- Rows will be dynamically added here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- Add Item Modal -->
+    <div id="addModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+      <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-down border border-slate-200">
+        <div class="bg-gradient-to-r from-brand-green to-emerald-600 p-5 flex justify-between items-center text-white">
+          <h3 class="text-xl font-bold flex items-center gap-2">
+            <i data-lucide="file-plus" class="w-6 h-6"></i>
+            إضافة بند جديد
+          </h3>
+          <button onclick="closeAddModal()" class="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+        <form id="addItemForm" class="p-6 space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label for="itemCode" class="block text-sm font-bold text-slate-700">الكود</label>
+              <input type="text" id="itemCode" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all font-semibold" placeholder="أدخل كود البند">
+            </div>
+            <div class="space-y-1.5">
+              <label for="itemDate" class="block text-sm font-bold text-slate-700">التاريخ</label>
+              <input type="date" id="itemDate" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all font-semibold">
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <label for="itemDesc" class="block text-sm font-bold text-slate-700">البند</label>
+            <input type="text" id="itemDesc" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all font-semibold" placeholder="أدخل اسم أو وصف البند">
+          </div>
+          <div class="space-y-1.5">
+            <label for="itemAmount" class="block text-sm font-bold text-slate-700">المبلغ (ج.م)</label>
+            <input type="number" id="itemAmount" required min="0" step="any" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent transition-all font-semibold" placeholder="0.00">
+          </div>
+          <div class="pt-4 flex flex-wrap justify-end gap-3 border-t border-slate-100">
+            <button type="button" onclick="closeAddModal()" class="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+              إلغاء
+            </button>
+            <button type="button" onclick="saveItemAndAddAnother()" class="px-6 py-2.5 rounded-xl font-bold text-brand-green bg-brand-greenLight border border-brand-green/20 hover:bg-brand-green/20 transition-colors flex items-center gap-2">
+              <i data-lucide="plus" class="w-5 h-5"></i>
+              حفظ وإضافة جديد
+            </button>
+            <button type="submit" class="px-6 py-2.5 rounded-xl font-bold text-white bg-brand-green hover:bg-brand-greenHover transition-colors flex items-center gap-2">
+              <i data-lucide="save" class="w-5 h-5"></i>
+              حفظ وإغلاق
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (typeof lucide !== "undefined") lucide.createIcons();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const monthIdxStr = urlParams.get('month');
+        if (monthIdxStr === null) {
+          window.location.href = 'decisions.html';
+          return;
+        }
+        
+        const monthIdx = parseInt(monthIdxStr, 10);
+        const currentYear = new Date().getFullYear();
+        
+        const MONTHS = [
+          "يناير","فبراير","مارس","أبريل","مايو","يونيو",
+          "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"
+        ];
+        
+        document.getElementById("monthNameDisplay").textContent = `شهر ${MONTHS[monthIdx]} ${currentYear}`;
+
+        let currentInstallmentTotal = 0;
+        let currentDecisions = [];
+
+        // Utility: parse date string robustly
+        function parseDateRobust(dateStr) {
+          if (!dateStr) return null;
+          if (dateStr.includes("-")) {
+            const p = dateStr.split("-");
+            if (p[0].length === 4) return { year: +p[0], month: +p[1]-1, day: +p[2]||1 };
+            if (p[2]?.length === 4) return { year: +p[2], month: +p[1]-1, day: +p[0]||1 };
+          }
+          if (dateStr.includes("/")) {
+            const p = dateStr.split("/");
+            if (p[2]?.length === 4) return { year: +p[2], month: +p[1]-1, day: +p[0]||1 };
+            if (p[0]?.length === 4) return { year: +p[0], month: +p[1]-1, day: +p[2]||1 };
+          }
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+          return null;
+        }
+
+        // Render Panel
+        function refreshPanel() {
+          const inst = currentInstallmentTotal;
+          const deduct = currentDecisions.reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+          const net = inst - deduct;
+
+          document.getElementById("statInstallments").textContent =
+            inst.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) + " ج.م";
+          document.getElementById("statDeductions").textContent =
+            deduct.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) + " ج.م";
+          const netEl = document.getElementById("statNet");
+          netEl.textContent = net.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}) + " ج.م";
+          netEl.className = `text-2xl font-extrabold ${net >= 0 ? "net-positive" : "net-negative"}`;
+
+          const tbody = document.getElementById("decisionsTableBody");
+          tbody.innerHTML = "";
+          
+          // Append inline add row FIRST
+          const inputTr = document.createElement("tr");
+          inputTr.className = "bg-brand-green/5 border-b-2 border-brand-green/20 shadow-sm";
+          const nextCode = String(currentDecisions.length + 1);
+          const todayDate = window.lastUsedDate || new Date().toISOString().split('T')[0];
+          inputTr.innerHTML = `
+            <td class="px-2 py-3"><input type="text" id="inlineCode" value="${nextCode}" class="w-full px-3 py-2 rounded-lg border border-brand-green/30 focus:ring-2 focus:ring-brand-green text-sm font-bold bg-white shadow-sm" placeholder="الكود"></td>
+            <td class="px-2 py-3"><input type="date" id="inlineDate" value="${todayDate}" class="w-full px-3 py-2 rounded-lg border border-brand-green/30 focus:ring-2 focus:ring-brand-green text-sm font-bold bg-white shadow-sm"></td>
+            <td class="px-2 py-3"><input type="text" id="inlineDesc" class="w-full px-3 py-2 rounded-lg border border-brand-green/30 focus:ring-2 focus:ring-brand-green text-sm font-bold bg-white shadow-sm" placeholder="اسم البند" onkeydown="if(event.key === 'Enter') saveInlineItem()"></td>
+            <td class="px-2 py-3"><input type="number" id="inlineAmount" min="0" step="any" class="w-full px-3 py-2 rounded-lg border border-brand-green/30 focus:ring-2 focus:ring-brand-green text-sm font-bold bg-white shadow-sm" placeholder="المبلغ" onkeydown="if(event.key === 'Enter') saveInlineItem()"></td>
+            <td class="px-2 py-3 text-center">
+              <button onclick="saveInlineItem()" class="text-white bg-brand-green hover:bg-brand-greenHover px-4 py-2 rounded-lg transition-colors flex items-center gap-1 w-full justify-center shadow-sm font-bold">
+                <i data-lucide="plus" class="w-5 h-5"></i> إضافة
+              </button>
+            </td>
+          `;
+          tbody.appendChild(inputTr);
+          
+          if (!currentDecisions.length) {
+            const emptyTr = document.createElement("tr");
+            emptyTr.innerHTML = `
+                <td colspan="5" class="text-center py-10 text-slate-400 font-semibold">
+                  <div class="flex flex-col items-center gap-2">
+                    <i data-lucide="inbox" class="w-8 h-8 text-slate-300"></i>
+                    <span>لا توجد بنود مضافة لهذا الشهر</span>
+                  </div>
+                </td>
+            `;
+            tbody.appendChild(emptyTr);
+          } else {
+            currentDecisions.forEach((item, idx) => {
+              const tr = document.createElement("tr");
+              tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0";
+              tr.innerHTML = `
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-bold text-slate-700">${item.code || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-slate-600">${item.date || '-'}</td>
+                <td class="px-4 py-3 text-sm font-semibold text-slate-800">${item.desc || '-'}</td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-extrabold text-red-600">
+                  ${parseFloat(item.amount||0).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})} ج.م
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-center">
+                  <button onclick="deleteItem(${idx})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </td>`;
+              tbody.appendChild(tr);
+            });
+          }
+
+          if (typeof lucide !== "undefined") lucide.createIcons();
+          
+          if (window.shouldFocusInlineCode) {
+            setTimeout(() => {
+              const el = document.getElementById('inlineCode');
+              if(el) el.focus();
+            }, 50);
+            window.shouldFocusInlineCode = false;
+          }
+        }
+
+        // Firebase Subscriptions
+        function initSectors() {
+          function tryInit() {
+            if (!window.dataService || !window.dataService.db) { setTimeout(tryInit, 300); return; }
+            window.dataService.db.ref("sectors").on("value", snap => {
+              const sectorsData = snap.val() || {};
+              let total = 0;
+              for (let sId = 1; sId <= 10; sId++) {
+                const clients = sectorsData[sId]?.clients || [];
+                if (!Array.isArray(clients)) continue;
+                clients.forEach(client => {
+                  for (let i = 1; i <= 10; i++) {
+                    const val = parseFloat(client[`inst${i}`]) || 0;
+                    const dateStr = client[`inst${i}Date`];
+                    if (val > 0 && dateStr) {
+                      const parsed = parseDateRobust(dateStr);
+                      if (parsed && parsed.year === currentYear && parsed.month === monthIdx) {
+                        total += val;
+                      }
+                    }
+                  }
+                });
+              }
+              currentInstallmentTotal = total;
+              refreshPanel();
+            });
+          }
+          tryInit();
+        }
+
+        function loadDecisions() {
+          function tryLoad() {
+            if (!window.dataService || !window.dataService.db) { setTimeout(tryLoad, 300); return; }
+            window.dataService.db.ref(`decisions/${currentYear}/${monthIdx}`).on("value", snap => {
+              const data = snap.val();
+              currentDecisions = Array.isArray(data) ? data : (data ? Object.values(data) : []);
+              refreshPanel();
+            });
+          }
+          tryLoad();
+        }
+
+        // Modal Handlers
+        window.openAddModal = () => {
+          document.getElementById('addItemForm').reset();
+          const today = new Date().toISOString().split('T')[0];
+          document.getElementById('itemDate').value = today;
+          document.getElementById('itemCode').value = String(currentDecisions.length + 1);
+          document.getElementById('addModal').classList.remove('hidden');
+          document.getElementById('addModal').classList.add('flex');
+        };
+
+        window.closeAddModal = () => {
+          document.getElementById('addModal').classList.add('hidden');
+          document.getElementById('addModal').classList.remove('flex');
+        };
+
+        function getFormData() {
+          return {
+            code: document.getElementById('itemCode').value,
+            date: document.getElementById('itemDate').value,
+            desc: document.getElementById('itemDesc').value,
+            amount: document.getElementById('itemAmount').value
+          };
+        }
+
+        function saveItem(data) {
+          currentDecisions.push(data);
+          if (window.dataService && window.dataService.db) {
+            window.dataService.db.ref(`decisions/${currentYear}/${monthIdx}`).set(currentDecisions);
+          }
+          refreshPanel();
+        }
+
+        document.getElementById('addItemForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          saveItem(getFormData());
+          closeAddModal();
+        });
+
+        window.saveItemAndAddAnother = () => {
+          const form = document.getElementById('addItemForm');
+          if(!form.checkValidity()) {
+            form.reportValidity();
+            return;
+          }
+          
+          saveItem(getFormData());
+          
+          // Clear specific fields (keep date)
+          document.getElementById('itemCode').value = String(currentDecisions.length + 1);
+          document.getElementById('itemDesc').value = '';
+          document.getElementById('itemAmount').value = '';
+          
+          // Focus first input
+          document.getElementById('itemCode').focus();
+          
+          // Visual feedback
+          const btn = document.querySelector('button[onclick="saveItemAndAddAnother()"]');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> تم الحفظ`;
+          if (typeof lucide !== "undefined") lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+          }, 1000);
+        };
+
+        window.saveInlineItem = () => {
+          const code = document.getElementById('inlineCode').value;
+          const date = document.getElementById('inlineDate').value;
+          const desc = document.getElementById('inlineDesc').value;
+          const amount = document.getElementById('inlineAmount').value;
+          
+          if (!desc || !amount) {
+            alert('يرجى إدخال اسم البند والمبلغ على الأقل');
+            return;
+          }
+          
+          window.lastUsedDate = date;
+          window.shouldFocusInlineCode = true;
+          
+          saveItem({ code, date, desc, amount });
+        };
+
+        window.deleteItem = (index) => {
+          if (confirm("هل أنت متأكد من حذف هذا البند؟")) {
+            currentDecisions.splice(index, 1);
+            if (window.dataService && window.dataService.db) {
+              window.dataService.db.ref(`decisions/${currentYear}/${monthIdx}`).set(currentDecisions.length > 0 ? currentDecisions : null);
+            }
+            refreshPanel();
+          }
+        };
+
+        // Initialize
+        initSectors();
+        loadDecisions();
+
+        // Export to Excel
+        window.exportToExcel = () => {
+          if (!currentDecisions.length) {
+            alert('لا توجد بنود لتصديرها.');
+            return;
+          }
+
+          const monthName = MONTHS[monthIdx];
+          const exportDate = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
+          const title = `قرارات صرف - شهر ${monthName} ${currentYear}`;
+
+          const rows = [
+            [title, '', '', ''],
+            [`تاريخ التصدير: ${exportDate}`, '', '', ''],
+            ['', '', '', ''],
+            ['الكود', 'التاريخ', 'البند', 'المبلغ (ج.م)']
+          ];
+
+          let totalDeductions = 0;
+          currentDecisions.forEach(item => {
+            const amt = parseFloat(item.amount) || 0;
+            totalDeductions += amt;
+            rows.push([
+              item.code || '-',
+              item.date || '-',
+              item.desc || '-',
+              amt
+            ]);
+          });
+
+          const netValue = currentInstallmentTotal - totalDeductions;
+
+          rows.push(['', '', '', '']);
+          rows.push(['إجمالي بنود الصرف', '', '', totalDeductions]);
+          rows.push(['إجمالي الأقساط', '', '', currentInstallmentTotal]);
+          rows.push(['الصافي', '', '', netValue]);
+
+          // ======= الأنماط =======
+          const headerStyle = {
+            fill: { fgColor: { rgb: "107C41" } },
+            font: { name: "Arial", bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top:    { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left:   { style: "thin", color: { rgb: "CCCCCC" } },
+              right:  { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const dataStyle = {
+            font: { name: "Arial", sz: 11 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top:    { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left:   { style: "thin", color: { rgb: "CCCCCC" } },
+              right:  { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const totalStyle = {
+            fill: { fgColor: { rgb: "E2EFDA" } },
+            font: { name: "Arial", bold: true, color: { rgb: "000000" }, sz: 12 },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top:    { style: "thin", color: { rgb: "CCCCCC" } },
+              bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+              left:   { style: "thin", color: { rgb: "CCCCCC" } },
+              right:  { style: "thin", color: { rgb: "CCCCCC" } }
+            }
+          };
+
+          const titleStyle = {
+            font: { name: "Arial", bold: true, sz: 14, color: { rgb: "107C41" } },
+            alignment: { horizontal: "center", vertical: "center" }
+          };
+
+          // ======= بناء الورقة =======
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          const range = XLSX.utils.decode_range(ws['!ref']);
+          const totalRows = rows.length;
+          const lastRowIdx = totalRows - 1;
+
+          // تطبيق التنسيقات على الخلايا
+          for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+              const cell_ref = XLSX.utils.encode_cell({ c: C, r: R });
+              if (!ws[cell_ref]) ws[cell_ref] = { t: "s", v: "" };
+
+              if (R < 3) {
+                // صفوف العنوان وتاريخ التصدير
+                ws[cell_ref].s = titleStyle;
+              } else if (R === 3) {
+                // صف رؤوس الأعمدة
+                ws[cell_ref].s = headerStyle;
+              } else if (R >= lastRowIdx - 2 && R <= lastRowIdx) {
+                // صفوف الإجماليات الثلاثة
+                ws[cell_ref].s = totalStyle;
+                if (C === 3 && typeof ws[cell_ref].v === 'number') {
+                  ws[cell_ref].z = '#,##0.00';
+                }
+              } else if (R > 3 && R < lastRowIdx - 2) {
+                // صفوف البيانات
+                ws[cell_ref].s = dataStyle;
+                if (C === 3 && typeof ws[cell_ref].v === 'number') {
+                  ws[cell_ref].z = '#,##0.00';
+                }
+              }
+            }
+          }
+
+          // ======= عرض الأعمدة =======
+          ws['!cols'] = [
+            { wch: 14 },
+            { wch: 16 },
+            { wch: 45 },
+            { wch: 20 }
+          ];
+
+          // ======= ارتفاع الصفوف =======
+          ws['!rows'] = [
+            { hpt: 26 },
+            { hpt: 20 },
+            { hpt: 8 },
+            { hpt: 22 }
+          ];
+
+          // ======= دمج الخلايا =======
+          ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } },
+            { s: { r: lastRowIdx - 2, c: 0 }, e: { r: lastRowIdx - 2, c: 2 } },
+            { s: { r: lastRowIdx - 1, c: 0 }, e: { r: lastRowIdx - 1, c: 2 } },
+            { s: { r: lastRowIdx,     c: 0 }, e: { r: lastRowIdx,     c: 2 } }
+          ];
+
+          // *** RTL ***
+          ws['!views'] = [{ rightToLeft: true }];
+
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, `${monthName} ${currentYear}`);
+          XLSX.writeFile(wb, `قرارات_صرف_${monthName}_${currentYear}.xlsx`);
+        };
+      });
+    </script>
+  </body>
+</html>

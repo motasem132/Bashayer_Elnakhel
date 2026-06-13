@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>القرارات - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+
+    <style>
+      /* Month card active state */
+      .month-card.active {
+        border-color: #1e7e34 !important;
+        box-shadow: 0 0 0 3px rgba(55, 139, 71, 0.15), 0 20px 40px rgba(55, 139, 71, 0.12) !important;
+        transform: translateY(-4px);
+      }
+      /* Animate in */
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .animate-slide-up { animation: slideUp 0.35s ease forwards; }
+
+      /* Net positive / negative colors */
+      .net-positive { color: #1e7e34; }
+      .net-negative { color: #dc2626; }
+    </style>
+  </head>
+  <body class="bg-brand-cream text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- Background Decor -->
+    <div class="fixed top-[-20%] right-[-10%] w-[600px] h-[600px] bg-brand-green/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+    <div class="fixed bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none z-0" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-[3px] border-brand-green shadow-sm sticky top-0 z-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-4">
+          <img src="icons/Logo.png" alt="شعار شركة بشاير النخيل" class="h-16 w-auto object-contain" />
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-brand-green">القرارات</h1>
+            <p class="text-slate-500 text-sm mt-0.5 font-bold">إدارة قرارات الصرف الشهرية</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <a
+            href="financial_options.html"
+            class="flex-1 sm:flex-none bg-white hover:bg-brand-cream text-brand-gold font-bold py-2.5 px-6 rounded-xl shadow-sm border border-brand-gold/30 transition-colors flex items-center justify-center gap-2"
+          >
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            <span>الرجوع</span>
+          </a>
+          <button
+            onclick="SessionManager.logout()"
+            class="flex-1 sm:flex-none bg-white hover:bg-red-50 text-red-600 font-bold py-2.5 px-6 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-2"
+          >
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+            <span>تسجيل الخروج</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full relative z-10">
+
+      <!-- Title + Year Badge -->
+      <header class="text-center mb-10 animate-fade-in-down">
+        <h2 class="text-3xl sm:text-4xl font-bold text-brand-green mb-2">قرارات الصرف</h2>
+        <p class="text-lg text-slate-500 font-semibold">
+          السنة: <span id="currentYearDisplay" class="text-brand-gold font-extrabold"></span>
+        </p>
+        <p class="text-sm text-slate-400 mt-1">يتم تحديث الأقساط تلقائياً من بيانات العملاء • البنود المضافة تُطرح من الإجمالي</p>
+      </header>
+
+      <!-- 12 Month Cards Grid -->
+      <div id="monthsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 mb-10">
+        <!-- Injected by JS -->
+      </div>
+    </main>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof lucide !== "undefined") lucide.createIcons();
+
+      const currentYear = new Date().getFullYear();
+      document.getElementById("currentYearDisplay").textContent = currentYear;
+
+      const MONTHS = [
+        "يناير","فبراير","مارس","أبريل","مايو","يونيو",
+        "يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"
+      ];
+      const MONTH_ICONS = [
+        "snowflake","cloud-rain","wind","flower-2","sun","thermometer",
+        "sun-medium","umbrella","leaf","cloud-snow","cloud","star"
+      ];
+
+      // State
+      let activeMonth = null;         // 0-11
+      let monthInstallments = new Array(12).fill(0); // from Firebase sectors
+      let monthDecisions = new Array(12).fill(null).map(() => []); // items per month
+      let activeListener = null;
+
+      // ── Utility: parse date string robustly ──────────────────────────
+      function parseDateRobust(dateStr) {
+        if (!dateStr) return null;
+        if (dateStr.includes("-")) {
+          const p = dateStr.split("-");
+          if (p[0].length === 4) return { year: +p[0], month: +p[1]-1, day: +p[2]||1 };
+          if (p[2]?.length === 4) return { year: +p[2], month: +p[1]-1, day: +p[0]||1 };
+        }
+        if (dateStr.includes("/")) {
+          const p = dateStr.split("/");
+          if (p[2]?.length === 4) return { year: +p[2], month: +p[1]-1, day: +p[0]||1 };
+          if (p[0]?.length === 4) return { year: +p[0], month: +p[1]-1, day: +p[2]||1 };
+        }
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+        return null;
+      }
+
+      // ── Build month cards ─────────────────────────────────────────────
+      function buildCards() {
+        const grid = document.getElementById("monthsGrid");
+        grid.innerHTML = "";
+        MONTHS.forEach((name, idx) => {
+          const inst   = monthInstallments[idx];
+          const deduct = monthDecisions[idx].reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+          const net    = inst - deduct;
+          const netColor = net >= 0 ? "text-brand-green" : "text-red-600";
+          const netBg   = net >= 0 ? "bg-emerald-50" : "bg-red-50";
+          const isActive = activeMonth === idx;
+
+          const card = document.createElement("div");
+          card.id = `month-card-${idx}`;
+          card.className = `month-card bg-white rounded-3xl p-5 border-2 border-transparent hover:border-brand-gold shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col items-center text-center relative overflow-hidden${isActive ? " active" : ""}`;
+          card.onclick = () => openMonth(idx);
+
+          card.innerHTML = `
+            <div class="absolute inset-0 bg-gradient-to-br from-brand-green/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+            <!-- Month number badge -->
+            <div class="absolute top-3 right-3 bg-brand-greenLight text-brand-green border border-brand-green/20 text-[10px] font-black px-2 py-0.5 rounded-lg select-none">${idx+1}</div>
+            <!-- Icon -->
+            <div class="w-14 h-14 rounded-2xl bg-brand-greenLight text-brand-green flex items-center justify-center mb-3 transition-colors duration-300 relative z-10 mt-2">
+              <i data-lucide="${MONTH_ICONS[idx]}" class="w-7 h-7"></i>
+            </div>
+            <!-- Month name -->
+            <h3 class="text-lg font-bold text-slate-800 mb-2 z-10">${name}</h3>
+            <!-- Net after deductions -->
+            <div class="w-full ${netBg} rounded-xl px-3 py-3 z-10 mt-1">
+              <p class="text-xs font-bold text-slate-500 mb-1">الصافي</p>
+              <p class="text-lg font-extrabold ${netColor}">${net.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2})} ج.م</p>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
+
+      // ── Load sector installments from Firebase ───────────────────────
+      function loadInstallments(sectorsData) {
+        const totals = new Array(12).fill(0);
+        for (let sId = 1; sId <= 10; sId++) {
+          const clients = sectorsData[sId]?.clients || [];
+          if (!Array.isArray(clients)) continue;
+          clients.forEach(client => {
+            for (let i = 1; i <= 10; i++) {
+              const val      = parseFloat(client[`inst${i}`]) || 0;
+              const dateStr  = client[`inst${i}Date`];
+              if (val > 0 && dateStr) {
+                const parsed = parseDateRobust(dateStr);
+                if (parsed && parsed.year === currentYear) {
+                  totals[parsed.month] += val;
+                }
+              }
+            }
+          });
+        }
+        monthInstallments = totals;
+        buildCards();
+      }
+
+      // ── Load decisions from Firebase (all months) ────────────────────
+      function loadDecisions() {
+        function tryLoad() {
+          if (!window.dataService?.db) { setTimeout(tryLoad, 300); return; }
+          window.dataService.db.ref(`decisions/${currentYear}`).on("value", snap => {
+            const data = snap.val() || {};
+            for (let m = 0; m < 12; m++) {
+              const raw = data[m] ?? null;
+              monthDecisions[m] = Array.isArray(raw) ? raw : (raw ? Object.values(raw) : []);
+            }
+            buildCards();
+            // Refresh open panel if any
+            if (activeMonth !== null) refreshPanel();
+          });
+        }
+        tryLoad();
+      }
+
+      // ── Subscribe to all sectors (real-time) ─────────────────────────
+      function initSectors() {
+        function tryInit() {
+          if (!window.dataService?.db) { setTimeout(tryInit, 300); return; }
+          window.dataService.db.ref("sectors").on("value", snap => {
+            loadInstallments(snap.val() || {});
+          });
+        }
+        tryInit();
+      }
+
+      // ── Open month panel ──────────────────────────────────────────────
+      window.openMonth = function(monthIdx) {
+        window.location.href = 'decision_details.html?month=' + monthIdx;
+      };
+
+      // ── Bootstrap ─────────────────────────────────────────────────────
+      buildCards(); // Initial empty render
+      loadDecisions();
+      initSectors();
+    });
+    </script>
+  </body>
+</html>

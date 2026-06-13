@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تسجيل الدخول - بشاير النخيل</title>
+
+    <!-- External Resources -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="icons/Logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <script src="assets/js/app.js"></script>
+  </head>
+
+  <body
+    class="bg-brand-cream text-slate-800 min-h-[100dvh] flex items-center justify-center p-4 relative w-full overflow-x-hidden"
+  >
+    <!-- Background Decor Elements -->
+    <div
+      class="fixed top-0 right-0 w-72 h-72 bg-brand-green/10 rounded-full blur-3xl pointer-events-none"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="fixed bottom-0 left-0 w-72 h-72 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none"
+      aria-hidden="true"
+    ></div>
+
+    <main
+      class="glass-panel w-full max-w-md rounded-3xl shadow-2xl border border-brand-gold/20 overflow-hidden relative z-10 animate-fade-in"
+    >
+      <!-- Top Accent Line -->
+      <div
+        class="h-2 w-full bg-gradient-to-r from-brand-green via-brand-gold to-brand-green"
+        aria-hidden="true"
+      ></div>
+
+      <div class="p-6 sm:p-10">
+        <!-- Branding Header -->
+        <header class="text-center mb-6 sm:mb-10 flex flex-col items-center">
+          <img
+            src="icons/Logo.png"
+            alt="شعار شركة بشاير النخيل"
+            class="h-20 sm:h-28 w-auto object-contain mb-3 sm:mb-4 hover:scale-105 transition-transform duration-300"
+          />
+          <h1
+            class="text-xl sm:text-2xl font-bold tracking-tight text-brand-green"
+          >
+            تسجيل الدخول
+          </h1>
+          <p class="text-brand-gold text-sm sm:text-base font-semibold mt-1">
+            لوحة تحكم إدارة المزارع
+          </p>
+        </header>
+
+        <!-- Authentication Form -->
+        <form id="loginForm" class="space-y-6" novalidate>
+          <!-- Error State Container -->
+          <div
+            id="errorMsg"
+            class="hidden bg-red-50 border-r-4 border-red-500 text-red-700 p-4 rounded-xl flex items-center gap-3 text-sm font-bold"
+            role="alert"
+          >
+            <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
+            <span>اسم المستخدم أو كلمة المرور غير صحيحة.</span>
+          </div>
+
+          <div class="form-group">
+            <label
+              for="username"
+              class="block text-sm font-bold text-brand-green mb-2"
+              >اسم المستخدم</label
+            >
+            <div class="relative">
+              <i
+                data-lucide="user"
+                class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"
+                aria-hidden="true"
+              ></i>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                required
+                dir="ltr"
+                autocomplete="username"
+                class="w-full pr-12 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-green focus:border-brand-green outline-none transition-all focus:bg-white text-left font-sans text-base sm:text-sm"
+                placeholder="username"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label
+              for="password"
+              class="block text-sm font-bold text-brand-green mb-2"
+              >كلمة المرور</label
+            >
+            <div class="relative">
+              <i
+                data-lucide="lock"
+                class="w-5 h-5 absolute right-4 top-1/2 transform -translate-y-1/2 text-brand-gold"
+                aria-hidden="true"
+              ></i>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                dir="ltr"
+                autocomplete="current-password"
+                class="w-full pr-12 pl-12 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-green focus:border-brand-green outline-none transition-all focus:bg-white text-left font-sans text-base sm:text-sm"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                id="togglePasswordBtn"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-brand-green focus:outline-none transition-colors"
+                aria-label="إظهار / إخفاء كلمة المرور"
+              >
+                <i data-lucide="eye" id="eyeIcon" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="submitBtn"
+            class="w-full bg-brand-green hover:bg-brand-greenHover text-white font-bold py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex items-center justify-center gap-2 mt-4 focus:outline-none focus:ring-2 focus:ring-brand-green focus:ring-offset-2"
+          >
+            <span>تسجيل الدخول</span>
+            <i data-lucide="log-in" class="w-5 h-5"></i>
+          </button>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>
